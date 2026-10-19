@@ -1,0 +1,15 @@
+# SUPERSEDED — the M06-T01 e2e override LIVES AT:
+#
+#     tests/e2e/docker-compose.e2e.yml
+#
+# It is layered on top of the root docker-compose.yml by the suite's
+# orchestrator (tests/e2e/conftest.py) as:
+#
+#     docker compose --project-name imap-mcp-e2e \
+#       --project-directory <repo root> \
+#       -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml up -d --build
+#
+# This root-level file is the M01-T03 placeholder stub and is intentionally
+# NOT a valid compose override anymore: it carries no services so that any
+# accidental `-f docker-compose.e2e.yml` fails loudly instead of booting a
+# second, competing e2e profile. See docs/README.md ("E2E release gate").

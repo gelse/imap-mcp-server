@@ -1,0 +1,62 @@
+/*
+ * Design tokens — the single source of truth for the gateway SPA.
+ *
+ * Every component consumes these custom properties; no component hard-codes a
+ * colour, spacing, radius, shadow, type size or font family. Values are tuned
+ * so every text/surface pair meets the WCAG 2.x 4.5:1 contrast target in BOTH
+ * themes (see frontend/tests/tokens.spec.ts for the assertion).
+ *
+ * Fonts are system stacks only — nothing is bundled or fetched from a remote
+ * origin, per the self-contained-assets contract.
+ */
+
+:root {
+  /* Fonts — system stacks only (no bundled/remote fonts). */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Typography scale. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Spacing scale — 4px base ramp. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radii. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows. */
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 4px 12px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.08);
+
+  /* Layout. */
+  --measure: 68ch;
+  --control-height: 40px;
+
+  /*
+   * Focus ring — a 2px high-contrast outline with a transparent offset. Never
+   * write `outline: none` without replacing it with this.
+   */
+  --focus-ring: 2px solid var(--color-focus);
+  --focus-ring-offset: 2px;
+}

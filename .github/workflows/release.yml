@@ -1,0 +1,103 @@
+# release.yml — publishes the container image to GHCR on a version tag push.
+#
+# Triggers: push of a tag matching v*.*.* (release tags are always vX.Y.Z) and
+# manual workflow_dispatch (dispatch may target a tag ref; that path behaves
+# like a tag push). Publishes three tags: v1.2.3, 1.2.3, and latest. `latest`
+# always means "the released version".
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+# ASSUMPTION: image is published to GHCR as ghcr.io/<owner>/<repo> (lowercased).
+# Correct these two permission lines / image name if you host the registry
+# elsewhere when creating the repository by hand.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for ancestry guard)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Guard: a tag on a non-main commit must never publish.
+      - name: "Guard: built commit must be contained in main"
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "ERROR: $GITHUB_SHA is not contained in main; refusing to publish." >&2
+            exit 1
+          fi
+          # Release skill invariant: the tagged commit IS main HEAD. A tag on an
+          # older (but still ancestor) commit must not re-point `latest`.
+          if [ "$(git rev-parse "$GITHUB_SHA^{commit}")" != "$(git rev-parse origin/main)" ]; then
+            echo "ERROR: $GITHUB_SHA is not origin/main HEAD; refusing to publish (tagged commit must equal main HEAD)." >&2
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR requires a lowercase image name; github.repository may contain
+      # uppercase, so compute it here.
+      - name: Compute image name
+        id: image
+        run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      # Version is derived from the triggering tag — never hardcoded (no version
+      # exists anywhere in this repo). Manual dispatch from a non-tag ref fails
+      # fast instead of publishing wrong tags.
+      - name: Compute tags
+        id: tags
+        run: |
+          if [ "${{ github.ref_type }}" != "tag" ]; then
+            echo "ERROR: release requires a tag ref (GITHUB_REF_TYPE=tag); got '${{ github.ref_type }}'." >&2
+            exit 1
+          fi
+          if ! printf '%s' "${{ github.ref_name }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERROR: tag '${{ github.ref_name }}' does not match ^v[0-9]+\\.[0-9]+\\.[0-9]+\$." >&2
+            exit 1
+          fi
+          image="${{ steps.image.outputs.image }}"
+          version="${{ github.ref_name }}"
+          bare="${version#v}"
+          tags="${image}:${version},${image}:${bare},${image}:latest"
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "labels=org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }},org.opencontainers.image.revision=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Multi-arch: Dockerfile pins multi-arch manifest bases.
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: ${{ steps.tags.outputs.labels }}
+          # No attestation wiring needed: provenance disabled.
+          provenance: false
+          # Caches the multi-stage build (uv sync + npm ci + frontend build).
+          cache-from: type=gha,scope=release
+          cache-to: type=gha,mode=max,scope=release
+        # Build needs network egress to the npm registry: `npm ci` in the
+        # web-build stage and the vendored imap-mcp-server@2.2.0 upstream
+        # package fetched from npm in the builder stage. That package is PUBLIC,
+        # so no npm token/secret is required — do not add any npm secret.

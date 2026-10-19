@@ -1,0 +1,72 @@
+# M06-T01 e2e override — layered ON TOP of the repository-root
+# docker-compose.yml (the deployment manifest M01-T03 finalized). This file
+# must never become a second standalone base: the suite under test is the
+# PRODUCTION compose stack plus the two test-only deltas below.
+#
+# Usage (the orchestrator in tests/e2e/conftest.py runs exactly this):
+#   docker compose --project-name imap-mcp-e2e \
+#     --project-directory <repo root> \
+#     -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml up -d --build
+#
+# Deltas over the base:
+#
+# - imap-gateway: data bind mounts remapped from ./data/* to the per-run
+#   tests/e2e/data/* tree (merged by compose target path, so the base's
+#   ./data/* entries are fully replaced and the suite is hermetic: the
+#   at-rest scenario inspects this tree on the host). `restart: "no"`
+#   absorbs the M01-T03 stub file's intent — a throwaway test stack must
+#   not auto-restart through failures the scenarios are trying to observe.
+#   depends_on gates the boot on the stub's health.
+#
+# - imap-stub (new service): a pure-Python IMAP/SMTP stub
+#   (tests/e2e/imap_stub — asyncio IMAP4rev1 + aiosmtpd) standing in for a
+#   real mailbox provider. Scenarios configure accounts with the in-network
+#   hostname `imap-stub:143`; the published 127.0.0.1 ports exist only for
+#   host-side probes (the deploy scenario's stub-wiring check).
+#
+# Host bind-mount ownership: the gateway image runs as uid 1000; conftest
+# creates tests/e2e/data/{config,users,mail} as uid 1000 (best-effort) or
+# you chown 1000:1000 them once.
+services:
+  imap-gateway:
+    restart: "no"
+    ports: !override
+      # Replaces the base published-port mapping (sequence merge would only UNION
+      # the lists, keeping the base entry). Host port 3000/3030 routinely belongs
+      # to other services on a developer machine: a collision would fail the
+      # whole `up` — and, worse, conftest's HTTP probes would hit whatever
+      # else happens to listen there instead of this stack. The in-container
+      # port follows GATEWAY_PORT (default 3030, the same value the base compose
+      # feeds to HTTP_PORT), so the tested surface matches the container's
+      # actual listener; only the host-side publishing moves, loopback only.
+      # Keep in sync with GATEWAY_HOST_PORT in tests/e2e/conftest.py — the host
+      # side defaults to 13000 and reads E2E_GATEWAY_PORT, so it cannot drift.
+      - "127.0.0.1:${E2E_GATEWAY_PORT:-13000}:${GATEWAY_PORT:-3030}"
+    volumes:
+      # Relative bind sources MUST carry the ./ prefix: compose parses a
+      # bare path as a NAMED volume ("refers to undefined volume ...").
+      # Paths resolve against --project-directory, which conftest pins to
+      # the repository root (the merge is by target path, so the base's
+      # ./data/* entries are fully replaced — the suite stays hermetic).
+      - ./tests/e2e/data/config:/data/config
+      - ./tests/e2e/data/users:/data/users
+      - ./tests/e2e/data/mail:/data/mail
+    depends_on:
+      imap-stub:
+        condition: service_healthy
+
+  imap-stub:
+    build: tests/e2e/imap_stub
+    restart: "no"
+    ports:
+      - "127.0.0.1:1143:143"
+      - "127.0.0.1:1025:25"
+    environment:
+      IMAP_PORT: "143"
+      SMTP_PORT: "25"
+    healthcheck:
+      test: ["CMD", "python", "/app/healthcheck.py"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

@@ -1,0 +1,29 @@
+{
+  "name": "imap-mcp-gateway-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue 3 + Vite + TypeScript SPA for the imap-mcp-gateway admin and user surfaces. Build-time only; the runtime image carries only frontend/dist/.",
+  "scripts": {
+    "dev": "vite",
+    "type-check": "vue-tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "audit": "node scripts/audit-dist.mjs",
+    "build": "npm run type-check && vite build && node scripts/audit-dist.mjs",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "vue": "3.5.44",
+    "vue-router": "4.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.12.0",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/compiler-sfc": "3.5.44",
+    "@vue/test-utils": "2.5.1",
+    "jsdom": "26.1.0",
+    "typescript": "5.9.3",
+    "vite": "7.1.12",
+    "vitest": "4.0.0",
+    "vue-tsc": "2.2.12"
+  }
+}
