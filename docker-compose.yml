@@ -1,0 +1,24 @@
+# Deployment manifest for M01-T03.
+#
+# Usage:
+#   mkdir -p data/config data/users data/mail   # once, on the host
+#   docker compose up --build -d
+#
+# The host bind-mount targets must be writable by the container's unprivileged
+# user (app, uid 1000) — create them as uid 1000 or chown 1000:1000. The
+# healthcheck delegates to the image HEALTHCHECK (GET /healthz); no competing
+# compose healthcheck is defined here. TLS/reverse proxy: out of scope (M06).
+services:
+  imap-gateway:
+    build: .
+    ports:
+      - "${GATEWAY_PORT:-3030}:${GATEWAY_PORT:-3030}"
+    environment:
+      DATA_DIR: /data
+      HTTP_PORT: "${GATEWAY_PORT:-3030}"
+      LOG_LEVEL: INFO
+    volumes:
+      - ./data/config:/data/config
+      - ./data/users:/data/users
+      - ./data/mail:/data/mail
+    restart: unless-stopped

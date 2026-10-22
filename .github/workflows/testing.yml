@@ -1,0 +1,79 @@
+# testing.yml — publishes the container image to GHCR from the testing branch.
+#
+# Triggers: push to the testing branch and manual workflow_dispatch. Publishes a
+# single tag: testing. `latest` is never produced here; it always means "the
+# released version" (see release.yml).
+name: Testing
+
+on:
+  push:
+    branches:
+      - testing
+  workflow_dispatch:
+
+# ASSUMPTION: image is published to GHCR as ghcr.io/<owner>/<repo> (lowercased).
+# Correct these two permission lines / image name if you host the registry
+# elsewhere when creating the repository by hand.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR requires a lowercase image name; github.repository may contain
+      # uppercase, so compute it here.
+      - name: Compute image name
+        id: image
+        run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      # Exactly one tag: testing. Never `latest`.
+      - name: Compute tags
+        id: tags
+        run: |
+          # Fail fast: this workflow publishes `:testing` and must only run on the
+          # testing branch (including manual dispatches).
+          if [ "${{ github.ref_type }}" != "branch" ] || [ "${{ github.ref_name }}" != "testing" ]; then
+            echo "ERROR: testing workflow must run on the testing branch; got ref_type='${{ github.ref_type }}' ref_name='${{ github.ref_name }}'." >&2
+            exit 1
+          fi
+          image="${{ steps.image.outputs.image }}"
+          tags="${image}:testing"
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "labels=org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }},org.opencontainers.image.revision=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Multi-arch: Dockerfile pins multi-arch manifest bases.
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: ${{ steps.tags.outputs.labels }}
+          # No attestation wiring needed: provenance disabled.
+          provenance: false
+          # Caches the multi-stage build (uv sync + npm ci + frontend build).
+          cache-from: type=gha,scope=testing
+          cache-to: type=gha,mode=max,scope=testing
+        # Build needs network egress to the npm registry: `npm ci` in the
+        # web-build stage and the vendored imap-mcp-server@2.2.0 upstream
+        # package fetched from npm in the builder stage. That package is PUBLIC,
+        # so no npm token/secret is required — do not add any npm secret.

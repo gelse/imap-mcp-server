@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+data/
+plans/
+.git/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+tests/
+
+# SPA build inputs: the image builds these itself (npm ci + vite build in the
+# web-build stage), so the host's installed dev dependencies and any stale
+# local dist must never leak into the build context. The frontend SOURCES are
+# NOT excluded — the builder needs them.
+frontend/node_modules/
+frontend/dist/

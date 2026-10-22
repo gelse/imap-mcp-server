@@ -1,0 +1,43 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+
+# Build artifacts
+dist/
+build/
+
+# npm dependencies for the container image — installed at image build time from
+# the committed vendor/npm/package-lock.json; never tracked.
+vendor/npm/node_modules/
+
+# SPA build toolchain — dev dependencies installed at image build time from the
+# committed frontend/package-lock.json; never tracked. (frontend/dist/ is already
+# ignored by the `dist/` pattern above.)
+frontend/node_modules/
+
+# Runtime data (bind mounts) and logs — holds admin-key.hash, wrap.key,
+# user records; NEVER tracked.
+data/
+*.log
+
+# E2E runtime data (compose bind mounts, generated per e2e run) — excluded
+# explicitly on top of data/ above so tests/e2e/** can be staged safely.
+tests/e2e/data/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# NOTE: uv.lock is intentionally NOT ignored — it is checked in (M01-T01).
+
+# Per-run manual QA checklist with one operator's executed results — not product
+# documentation; deliberately not tracked.
+/docs/manual-admin-user-ui-test.md
+
+# Planning documents — local working material, not product artifacts; never
+# tracked.
+plans/

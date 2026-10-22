@@ -1,0 +1,95 @@
+/*
+ * Themes — semantic colour tokens.
+ *
+ * Light values live on :root. Dark values are applied under
+ * [data-theme="dark"] (explicit toggle) AND under the prefers-color-scheme
+ * media query when no explicit choice has been made (i.e. <html> has no
+ * data-theme attribute). lib/theme.ts resolves and stamps the attribute; this
+ * stylesheet is the entire visual contract for both themes.
+ *
+ * Contrast: every foreground token below was chosen to reach >= 4.5:1 against
+ * the surfaces it is placed on, in both themes. frontend/tests/tokens.spec.ts
+ * asserts the key text/surface pairs using the WCAG relative-luminance formula.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces & text (light). */
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-alt: #eef1f5;
+  --color-text: #1b2333;
+  --color-muted: #5a6474;
+  --color-border: #c9d0da;
+  --color-focus: #1a56db;
+
+  /* Accents (light). */
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1a44bd;
+  --color-on-primary: #ffffff;
+  --color-danger: #b91c1c;
+  --color-on-danger: #ffffff;
+  --color-success: #136c34;
+  --color-warning: #92610a;
+
+  /* Tinted status surfaces (light). */
+  --color-success-bg: #e6f4ea;
+  --color-warning-bg: #fbf1dc;
+  --color-danger-bg: #fbe9e9;
+  --color-info-bg: #e8eefb;
+}
+
+/* Dark theme — explicit toggle. */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #0f141c;
+  --color-surface: #171e29;
+  --color-surface-alt: #212a37;
+  --color-text: #eef2f7;
+  --color-muted: #aab4c2;
+  --color-border: #3a4453;
+  --color-focus: #8ab4ff;
+
+  --color-primary: #8ab4ff;
+  --color-primary-hover: #a7c6ff;
+  --color-on-primary: #0b1220;
+  --color-danger: #ff9b9b;
+  --color-on-danger: #2a0b0b;
+  --color-success: #7fd6a0;
+  --color-warning: #f0c168;
+
+  --color-success-bg: #12301f;
+  --color-warning-bg: #33280f;
+  --color-danger-bg: #351717;
+  --color-info-bg: #14233f;
+}
+
+/* Dark theme — automatic, only while no explicit choice is stamped. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --color-bg: #0f141c;
+    --color-surface: #171e29;
+    --color-surface-alt: #212a37;
+    --color-text: #eef2f7;
+    --color-muted: #aab4c2;
+    --color-border: #3a4453;
+    --color-focus: #8ab4ff;
+
+    --color-primary: #8ab4ff;
+    --color-primary-hover: #a7c6ff;
+    --color-on-primary: #0b1220;
+    --color-danger: #ff9b9b;
+    --color-on-danger: #2a0b0b;
+    --color-success: #7fd6a0;
+    --color-warning: #f0c168;
+
+    --color-success-bg: #12301f;
+    --color-warning-bg: #33280f;
+    --color-danger-bg: #351717;
+    --color-info-bg: #14233f;
+  }
+}

@@ -1,0 +1,67 @@
+[project]
+name = "imap-mcp-gateway"
+dynamic = ["version"]
+description = "Self-hosted FastAPI gateway exposing the upstream imap-mcp-server over authenticated HTTP."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Pins from the M01 deployment-foundation milestone (Design -> Toolchain pins).
+    "fastapi==0.143.1",
+    "uvicorn[standard]>=0.32.0,<0.33",
+    "pydantic==2.14.1",
+    # pydantic v2's env-driven settings layer (config/env.py, added in
+    # M01-T02; not part of the milestone Design pin list).
+    "pydantic-settings==2.16.0",
+    "python-multipart",
+    "cryptography==50.0.2",
+    "mcp==2.3.0",
+    # Direct import in mcp/gateway.py (M05-T01 bridge task groups); already a
+    # hard transitive requirement of both starlette and mcp — declared because
+    # the gateway imports it directly.
+    "anyio>=4.9",
+]
+
+[project.optional-dependencies]
+# Keep in sync with [dependency-groups].dev below: `pip install -e .[dev]` uses
+# this extra, while `uv sync` installs the `dev` dependency group.
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+    "mypy",
+]
+# End-to-end scenario suite (tests/e2e): drives the real docker-compose stack.
+# Run with: uv run --extra e2e pytest tests/e2e
+e2e = [
+    "pytest>=8",
+    "httpx",
+    "pytest-asyncio",
+]
+
+[project.scripts]
+imap-mcp-gateway = "imap_mcp_gateway.app:run"
+
+[dependency-groups]
+# Keep in sync with [project.optional-dependencies].dev above.
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+    "mypy",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/imap_mcp_gateway/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/imap_mcp_gateway"]
+
+[tool.gateway]
+# Declarative metadata only — no Python code reads this table. M01-T03's
+# Dockerfile consumes it for: npm install --prefix /opt/vendor/npm imap-mcp-server@2.2.0
+imap-mcp-server = "2.2.0"
