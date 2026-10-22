@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.0
+## v0.1.0 - 2026-10-22
 
 First release. A self-hosted FastAPI gateway in front of the upstream
 `imap-mcp-server` MCP tool set, with per-user isolation and encrypted account
