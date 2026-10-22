@@ -8,7 +8,7 @@ APIs, and an MCP Streamable HTTP endpoint at `/mcp`. The gateway is Python
 (FastAPI); for tool execution it spawns a child process running the vendored,
 pinned `imap-mcp-server@2.2.0` Node package — one child per MCP session.
 
-[![License: MIT](https://img.shields.io/badge/License-LGPL-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-GPL-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker)](https://ghcr.io/gelse/ssh-mcp)
 [![MCP](https://img.shields.io/badge/MCP-streamable--HTTP-green.svg)](https://modelcontextprotocol.io/)
 
